@@ -4,6 +4,13 @@
 ## Description : Send Warning/Critical alert before expiry date of SSL Certificate.
 ## Version : 1.0
 ##
+## Changelog:
+##   v1.1 - 2024-10-05 cj
+##        - Added port arg
+##        - Added -servername to openssl line
+##        - Converted to unix line endings
+##   v1.0 - 2014-12-10: original version from https://raw.githubusercontent.com/sharadchhetri/Nagios/refs/heads/master/check_ssl_cert_expiry
+##
 ## Usage example: /check_ssl_cert_expiry -h www.google.co.in -w 90 -c 60
 ## -w = integer number (Warning days)
 ## -c = integer number (Critical days)
@@ -15,10 +22,11 @@ _HOST=""
 _WARNEXPIRYDAYS=""
 _CRITEXPIRYDAYS=""
 
-while getopts "h:w:c:" opt
+while getopts "h:p:w:c:" opt
 do
 case $opt in
 h ) _HOST=$OPTARG;;
+p ) _PORT=$OPTARG;;
 w ) _WARNEXPIRYDAYS=$OPTARG;;
 c ) _CRITEXPIRYDAYS=$OPTARG;;
 esac
@@ -28,6 +36,10 @@ if [ ! "$_HOST" ]
 then
 printf "ERROR - Either give Hostname in syntax as www.example.com or example.com with -h!\n"
 exit 3
+fi
+if [ ! "$_PORT" ]
+then
+    $_PORT = "443"
 fi
 if [ ! "$_WARNEXPIRYDAYS" ]
 then
@@ -40,7 +52,7 @@ printf "ERROR - Add CRITICAL expiry in days with -c\n"
 exit 3
 fi
 
-EXPIRYDATE=`echo "QUIT" | openssl s_client -connect $_HOST:443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null|sed 's/notAfter=//g'`
+EXPIRYDATE=`echo "QUIT" | openssl s_client -connect $_HOST:$_PORT -servername $_HOST 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null|sed 's/notAfter=//g'`
 #echo $EXPIRYDATE
 
 EXPIRYDATE_epoch=$(date --date "$EXPIRYDATE" +%s)
